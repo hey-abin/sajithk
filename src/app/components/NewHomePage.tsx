@@ -1,14 +1,41 @@
-import { motion, useScroll, useTransform } from 'motion/react';
+import { motion, useScroll, useTransform, useSpring, useMotionValue } from 'motion/react';
 import { Camera, Video, Palette, Film, Mail, Phone, Instagram, Youtube, ChevronRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
-import { useEffect, useState } from 'react';
-import img1 from '../../imports/IMG_4770.JPG';
-import img2 from '../../imports/IMG_4886.PNG';
-
+import { useEffect, useState, useRef } from 'react';
 export default function NewHomePage() {
   const [settings, setSettings] = useState<any>({});
   const [loading, setLoading] = useState(true);
+  const containerRef = useRef<HTMLDivElement>(null);
+  
+  // Mouse Tracking for 3D Parallax
+  const mouseX = useMotionValue(0);
+  const mouseY = useMotionValue(0);
+  
+  const springConfig = { damping: 25, stiffness: 150 };
+  const smoothMouseX = useSpring(mouseX, springConfig);
+  const smoothMouseY = useSpring(mouseY, springConfig);
+
+  const rotateX = useTransform(smoothMouseY, [-0.5, 0.5], [15, -15]);
+  const rotateY = useTransform(smoothMouseX, [-0.5, 0.5], [-15, 15]);
+  
+  // Parallax for background orbs
+  const orbX1 = useTransform(smoothMouseX, [-0.5, 0.5], [-50, 50]);
+  const orbY1 = useTransform(smoothMouseY, [-0.5, 0.5], [-50, 50]);
+  const orbX2 = useTransform(smoothMouseX, [-0.5, 0.5], [30, -30]);
+  const orbY2 = useTransform(smoothMouseY, [-0.5, 0.5], [30, -30]);
+
+  const cursorX = useMotionValue(0);
+  const cursorY = useMotionValue(0);
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    const { clientX, clientY } = e;
+    const { innerWidth, innerHeight } = window;
+    mouseX.set(clientX / innerWidth - 0.5);
+    mouseY.set(clientY / innerHeight - 0.5);
+    cursorX.set(clientX);
+    cursorY.set(clientY);
+  };
 
   useEffect(() => {
     fetchSettings();
@@ -27,7 +54,42 @@ export default function NewHomePage() {
   const { scrollYProgress } = useScroll();
 
   return (
-    <div className="min-h-screen bg-[#E8E8E8]">
+    <div 
+      onMouseMove={handleMouseMove}
+      className="min-h-screen bg-[#E8E8E8] relative selection:bg-[#0EA5E9] selection:text-white"
+    >
+      {/* Cinematic Grain Overlay */}
+      <div className="fixed inset-0 pointer-events-none z-[100] opacity-[0.03] mix-blend-overlay">
+        <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+          <filter id="noiseFilter">
+            <feTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves="3" stitchTiles="stitch" />
+          </filter>
+          <rect width="100%" height="100%" filter="url(#noiseFilter)" />
+        </svg>
+      </div>
+
+      {/* Custom Follower Cursor */}
+      <motion.div 
+        className="fixed w-6 h-6 border-2 border-[#0EA5E9] rounded-full pointer-events-none z-[200] hidden md:flex items-center justify-center"
+        style={{ 
+          x: useSpring(cursorX, { damping: 30, stiffness: 300 }), 
+          y: useSpring(cursorY, { damping: 30, stiffness: 300 }) 
+        }}
+      >
+        <div className="w-1 h-1 bg-[#0EA5E9] rounded-full" />
+      </motion.div>
+
+      {/* Animated Background Orbs */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        <motion.div 
+          style={{ x: orbX1, y: orbY1 }}
+          className="absolute top-[10%] left-[15%] w-[40vw] h-[40vw] bg-[#0EA5E9]/5 rounded-full blur-[120px]" 
+        />
+        <motion.div 
+          style={{ x: orbX2, y: orbY2 }}
+          className="absolute bottom-[10%] right-[10%] w-[35vw] h-[35vw] bg-[#0EA5E9]/10 rounded-full blur-[100px]" 
+        />
+      </div>
       {/* Hero Section */}
       <section className="relative min-h-screen flex items-center justify-center overflow-hidden px-6 pt-24 pb-12">
         {/* Background decorative elements */}
@@ -37,12 +99,13 @@ export default function NewHomePage() {
         <div className="max-w-7xl w-full mx-auto flex flex-col lg:grid lg:grid-cols-2 gap-12 items-center relative z-10 text-center lg:text-left">
           {/* Typography Section */}
           <motion.div
+            style={{ rotateX, rotateY, transformStyle: 'preserve-3d' }}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8 }}
-            className="order-2 lg:order-1"
+            className="order-2 lg:order-1 perspective-[1000px]"
           >
-            <div className="relative inline-block lg:block">
+            <div className="relative inline-block lg:block translate-z-[50px]">
               <span className="text-[10px] md:text-xs font-black border border-[#0EA5E9]/30 text-[#0EA5E9] px-4 py-1.5 rounded-full inline-block mb-6 uppercase tracking-[0.3em] bg-white/50 backdrop-blur-sm">
                 {settings.hero?.tagline || 'Creative Visual'}
               </span>
@@ -55,31 +118,28 @@ export default function NewHomePage() {
               </h1>
             </div>
 
-            <div className="flex items-center justify-center lg:justify-start gap-4 mb-8">
+            <div className="flex items-center justify-center lg:justify-start gap-4 mb-8 translate-z-[30px]">
               <div className="h-px w-8 bg-[#2D2D2D]/10" />
               <span className="font-bold text-sm tracking-widest uppercase text-[#2D2D2D]/30">Sajith K. 2026</span>
             </div>
 
-            <Link to="/projects" className="inline-block">
+            <Link to="/projects" className="inline-block translate-z-[40px]">
               <motion.button
-                whileHover={{ scale: 1.05 }}
+                whileHover={{ scale: 1.05, backgroundColor: '#0EA5E9' }}
                 whileTap={{ scale: 0.95 }}
-                className="px-8 py-4 bg-[#2D2D2D] text-white rounded-xl font-black uppercase tracking-widest text-[11px] shadow-xl hover:bg-[#0EA5E9] transition-all flex items-center gap-2"
+                className="px-8 py-4 bg-[#2D2D2D] text-white rounded-xl font-black uppercase tracking-widest text-[11px] shadow-xl transition-all flex items-center gap-2"
               >
                 View Works <ChevronRight size={14} />
               </motion.button>
             </Link>
           </motion.div>
 
-          {/* 3D Image Section */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 1 }}
+            style={{ rotateX, rotateY, transformStyle: 'preserve-3d' }}
             className="order-1 lg:order-2 perspective-[1000px] w-full"
           >
             <motion.div 
-              whileHover={{ rotateY: -10, rotateX: 10 }}
+              whileHover={{ scale: 1.05 }}
               style={{ transformStyle: 'preserve-3d' }}
               className="relative z-10 w-full max-w-[280px] md:max-w-[450px] mx-auto aspect-square group transition-all duration-500"
             >
@@ -87,7 +147,7 @@ export default function NewHomePage() {
               
               <div className="relative w-full h-full border-4 border-white bg-white rounded-full overflow-hidden shadow-2xl grayscale group-hover:grayscale-0 transition-all duration-700">
                 <img
-                  src={img1}
+                  src={settings.hero?.image_url}
                   alt="Sajith K"
                   className="w-full h-full object-cover scale-110 group-hover:scale-100 transition-transform duration-700"
                 />
@@ -115,154 +175,125 @@ export default function NewHomePage() {
         </motion.div>
       </section>
 
-      {/* About Section */}
-      <section className="py-20 px-4 bg-white">
-        <div className="max-w-6xl mx-auto">
+      {/* About Section - Single Frame Layout */}
+      <section className="min-h-screen py-20 px-6 bg-white relative flex items-center overflow-hidden">
+        <div className="max-w-7xl mx-auto w-full relative z-10">
           <div className="flex items-center gap-4 mb-12">
-            <h2 className="text-4xl font-bold">About</h2>
-            <div className="h-px flex-1 bg-[#2D2D2D]" />
-            <ChevronRight className="w-8 h-8" />
+            <h2 className="text-3xl font-black uppercase tracking-widest text-[#2D2D2D]/20 italic">About Me</h2>
+            <div className="h-px flex-1 bg-[#2D2D2D]/5" />
           </div>
 
-          <div className="grid lg:grid-cols-2 gap-12 items-start">
-            {/* Profile Image */}
-            <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              className="relative"
-            >
-              <div className="relative">
-                <div className="absolute -bottom-8 -left-8 w-64 h-64 bg-[#0EA5E9] rounded-tr-[150px]" />
-                <div className="relative z-10">
+          <div className="grid lg:grid-cols-12 gap-12 items-center">
+            {/* Left: 3D Portrait Frame */}
+            <div className="lg:col-span-5 relative perspective-[1000px]">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                whileInView={{ opacity: 1, scale: 1 }}
+                viewport={{ once: true }}
+                style={{ rotateX, rotateY, transformStyle: 'preserve-3d' }}
+                className="relative group"
+              >
+                {/* Parallax Background Shape */}
+                <motion.div 
+                  style={{ y: useTransform(scrollYProgress, [0.1, 0.4], [0, -50]) }}
+                  className="absolute -bottom-10 -left-10 w-48 h-48 bg-[#0EA5E9]/10 rounded-tr-[100px] -z-10 blur-2xl" 
+                />
+                
+                <div className="relative z-10 overflow-hidden rounded-[2.5rem] shadow-2xl border-[6px] border-white translate-z-[50px] aspect-[4/5]">
                   <motion.img
-                    whileHover={{ scale: 1.02 }}
-                    src={img2}
+                    whileHover={{ scale: 1.05 }}
+                    src={settings.about?.image_url}
                     alt="Sajith K Profile"
-                    className="w-full max-w-md rounded-3xl shadow-2xl grayscale hover:grayscale-0 transition-all duration-700"
+                    className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-1000"
                   />
                 </div>
-              </div>
+              </motion.div>
+            </div>
 
-              {/* Contact Card */}
-              <div className="mt-8 border-t border-[#2D2D2D]/10 pt-10">
-                <h3 className="font-black text-xs uppercase tracking-[0.4em] text-[#0EA5E9] mb-8">
-                  Get In Touch
-                </h3>
-                <div className="grid gap-6">
-                  {[
-                    { icon: Mail, label: 'Email', value: settings.contact?.email || 'sajithkizhyapattu@gmail.com', href: `mailto:${settings.contact?.email || 'sajithkizhyapattu@gmail.com'}` },
-                    { icon: Phone, label: 'Phone', value: settings.contact?.phone || '+91 9567633217' },
-                    { icon: Instagram, label: 'Instagram', value: settings.contact?.instagram || '@sajith.k' },
-                  ].map((item, i) => (
-                    <motion.a
-                      key={item.label}
-                      href={item.href}
-                      initial={{ opacity: 0, x: -10 }}
-                      whileInView={{ opacity: 1, x: 0 }}
-                      transition={{ delay: i * 0.1 }}
-                      className="flex items-center justify-between group cursor-pointer"
-                    >
-                      <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 border border-[#2D2D2D]/10 rounded-full flex items-center justify-center group-hover:bg-[#0EA5E9] group-hover:border-[#0EA5E9] transition-all">
-                          <item.icon className="w-4 h-4 text-[#2D2D2D]/40 group-hover:text-white transition-colors" />
-                        </div>
-                        <div className="space-y-0.5">
-                          <p className="text-[10px] font-black uppercase tracking-widest text-[#2D2D2D]/30">{item.label}</p>
-                          <p className="text-sm font-bold text-[#2D2D2D]">{item.value}</p>
-                        </div>
-                      </div>
-                      <ChevronRight size={16} className="text-[#2D2D2D]/20 group-hover:text-[#0EA5E9] group-hover:translate-x-1 transition-all" />
-                    </motion.a>
-                  ))}
+            {/* Right: Content Ecosystem */}
+            <div className="lg:col-span-7 space-y-10">
+              {/* Introduction */}
+              <motion.div
+                initial={{ opacity: 0, x: 30 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
+                className="space-y-4"
+              >
+                <div className="flex items-center gap-3">
+                  <span className="text-4xl text-[#0EA5E9] font-black leading-none">&quot;</span>
+                  <h3 className="text-5xl font-black uppercase tracking-tighter text-[#2D2D2D]">
+                    {settings.about?.title || 'HELLO'}<span className="text-[#0EA5E9]">.</span>
+                  </h3>
                 </div>
-              </div>
-            </motion.div>
+                <p className="text-base leading-relaxed text-[#2D2D2D]/60 max-w-xl">
+                  {settings.about?.description || 'Visual storyteller creating captivating content through videography, photography, and creative editing.'}
+                </p>
+              </motion.div>
 
-            {/* About Content */}
-            <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.2 }}
-              className="space-y-6"
-            >
-              <div>
-                <span className="text-5xl text-[#0EA5E9] font-bold">&quot;&quot;</span>
-                <h3 className="text-4xl font-bold inline ml-2 uppercase tracking-tighter">{settings.about?.title || 'HELLO'}</h3>
-                <span className="text-[#0EA5E9] text-4xl">.</span>
-              </div>
-
-              <p className="text-lg leading-relaxed text-[#2D2D2D]/70">
-                {settings.about?.description || 'Visual storyteller creating captivating content through videography, photography, and creative editing.'}
-              </p>
-
-              <div className="grid sm:grid-cols-2 gap-8 mt-8">
-                <div>
-                  <h4 className="font-bold text-xl mb-4">Skills</h4>
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 bg-[#0EA5E9] rounded-full" />
-                      <span>Videography</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 bg-[#0EA5E9] rounded-full" />
-                      <span>Photography</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 bg-[#0EA5E9] rounded-full" />
-                      <span>Video Editing</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 bg-[#0EA5E9] rounded-full" />
-                      <span>Color Grading</span>
-                    </div>
+              {/* Skills & Software Grid */}
+              <div className="grid md:grid-cols-2 gap-10 border-t border-[#2D2D2D]/5 pt-10">
+                <div className="space-y-6">
+                  <h4 className="font-black text-[10px] uppercase tracking-[0.4em] text-[#0EA5E9]">Expertise</h4>
+                  <div className="grid grid-cols-1 gap-3">
+                    {[
+                      { label: 'Videography', icon: Camera },
+                      { label: 'Photography', icon: Video },
+                      { label: 'Video Editing', icon: Film },
+                      { label: 'Color Grading', icon: Palette }
+                    ].map((skill, i) => (
+                      <motion.div 
+                        key={skill.label}
+                        whileHover={{ x: 5 }}
+                        className="flex items-center gap-3 group/skill cursor-default"
+                      >
+                        <div className="w-8 h-8 rounded-lg bg-[#2D2D2D]/5 flex items-center justify-center group-hover/skill:bg-[#0EA5E9] transition-colors">
+                          <skill.icon size={12} className="text-[#2D2D2D]/40 group-hover/skill:text-white transition-colors" />
+                        </div>
+                        <span className="text-xs font-bold text-[#2D2D2D]/60 group-hover/skill:text-[#2D2D2D] transition-colors">{skill.label}</span>
+                      </motion.div>
+                    ))}
                   </div>
                 </div>
 
-                <div>
-                  <h4 className="font-bold text-xl mb-6 tracking-tight">Software Mastery</h4>
-                  <div className="flex flex-wrap gap-4">
+                <div className="space-y-6">
+                  <h4 className="font-black text-[10px] uppercase tracking-[0.4em] text-[#0EA5E9]">Tech Stack</h4>
+                  <div className="flex flex-wrap gap-2">
                     {[
-                      { name: 'PS', color: '#31A8FF', label: 'Photoshop' },
-                      { name: 'LR', color: '#31A8FF', label: 'Lightroom' },
-                      { name: 'AE', color: '#CF96FD', label: 'After Effects' },
-                      { name: 'PR', color: '#E48BFF', label: 'Premiere Pro' },
-                      { name: 'CC', color: '#FF3C3C', label: 'Creative Cloud' },
+                      { name: 'PS', color: '#31A8FF' },
+                      { name: 'LR', color: '#31A8FF' },
+                      { name: 'AE', color: '#CF96FD' },
+                      { name: 'PR', color: '#E48BFF' },
+                      { name: 'CC', color: '#FF3C3C' },
                     ].map((software) => (
                       <motion.div
                         key={software.name}
-                        whileHover={{ 
-                          scale: 1.1, 
-                          rotateY: 20,
-                          boxShadow: `0 20px 40px ${software.color}33`
-                        }}
-                        className="relative group cursor-pointer"
+                        whileHover={{ scale: 1.1, y: -2 }}
+                        className="w-10 h-10 rounded-xl bg-[#2D2D2D] flex items-center justify-center text-[10px] font-black shadow-lg cursor-pointer"
+                        style={{ color: software.color }}
                       >
-                        <div 
-                          className="w-14 h-14 rounded-2xl flex items-center justify-center font-black text-xl transition-all duration-500 border-2"
-                          style={{ 
-                            backgroundColor: '#2D2D2D',
-                            borderColor: 'transparent',
-                            color: software.color 
-                          }}
-                        >
-                          {software.name}
-                        </div>
-                        {/* 3D Glow Effect on Hover */}
-                        <div 
-                          className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 blur-xl transition-opacity duration-500 -z-10"
-                          style={{ backgroundColor: software.color }}
-                        />
-                        <span className="absolute -bottom-6 left-1/2 -translate-x-1/2 text-[10px] font-black uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap text-[#2D2D2D]/40">
-                          {software.label}
-                        </span>
+                        {software.name}
                       </motion.div>
                     ))}
                   </div>
                 </div>
               </div>
-            </motion.div>
+
+              {/* Contact Integration */}
+              <div className="pt-10 border-t border-[#2D2D2D]/5 flex flex-wrap gap-x-12 gap-y-4">
+                {[
+                  { icon: Mail, value: settings.contact?.email || 'sajith@gmail.com', label: 'Email' },
+                  { icon: Instagram, value: settings.contact?.instagram || '@sajith.k', label: 'Social' },
+                ].map((item) => (
+                  <div key={item.label} className="flex items-center gap-3 group cursor-pointer">
+                    <item.icon size={14} className="text-[#0EA5E9]" />
+                    <div className="flex flex-col">
+                      <span className="text-[8px] font-black uppercase tracking-widest text-[#2D2D2D]/30">{item.label}</span>
+                      <span className="text-xs font-bold text-[#2D2D2D] group-hover:text-[#0EA5E9] transition-colors">{item.value}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
       </section>

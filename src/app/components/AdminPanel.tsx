@@ -110,8 +110,8 @@ export default function AdminPanel({ onLogout }: { onLogout: () => void }) {
     if (!confirm('This will populate the database with initial content. Continue?')) return;
     setLoading(true);
     const initialSetts = [
-      { key: 'hero', value: { title: 'PORTO', subtitle: 'FOLIO', tagline: 'Creative Visual' } },
-      { key: 'about', value: { title: 'HELLO', description: 'Visual storyteller creating captivating content through videography, photography, and creative editing.' } },
+      { key: 'hero', value: { title: 'PORTO', subtitle: 'FOLIO', tagline: 'Creative Visual', image_url: 'https://pihhtsvshfllrxonagim.supabase.co/storage/v1/object/public/sajith/hero_profile.jpg' } },
+      { key: 'about', value: { title: 'HELLO', description: 'Visual storyteller creating captivating content through videography, photography, and creative editing.', image_url: 'https://pihhtsvshfllrxonagim.supabase.co/storage/v1/object/public/sajith/hero_about.png' } },
       { key: 'contact', value: { name: 'SAJITH K', email: 'sajithkizhyapattu@gmail.com', phone: '+91 9567633217', instagram: '@sajith.k', youtube: 'https://youtube.com' } }
     ];
 
@@ -242,6 +242,23 @@ export default function AdminPanel({ onLogout }: { onLogout: () => void }) {
                 <Input label="Main Title" value={settings.hero?.title} onChange={(v: string) => setSettings({...settings, hero: {...settings.hero, title: v}})} />
                 <Input label="Subtitle" value={settings.hero?.subtitle} onChange={(v: string) => setSettings({...settings, hero: {...settings.hero, subtitle: v}})} />
                 <Input label="Tagline" value={settings.hero?.tagline} onChange={(v: string) => setSettings({...settings, hero: {...settings.hero, tagline: v}})} />
+                <div className="space-y-2">
+                  <Input label="Hero Image URL" value={settings.hero?.image_url} onChange={(v: string) => setSettings({...settings, hero: {...settings.hero, image_url: v}})} />
+                  <label className="text-[10px] font-black uppercase tracking-widest text-[#0EA5E9] cursor-pointer hover:underline ml-1">
+                    {uploading ? 'Uploading...' : 'Upload New Hero Image'}
+                    <input
+                      type="file"
+                      className="hidden"
+                      accept="image/*"
+                      onChange={async (e) => {
+                        if (e.target.files?.[0]) {
+                          const url = await handleFileUpload(e.target.files[0]);
+                          if (url) setSettings({...settings, hero: {...settings.hero, image_url: url}});
+                        }
+                      }}
+                    />
+                  </label>
+                </div>
               </div>
             </section>
 
@@ -266,6 +283,23 @@ export default function AdminPanel({ onLogout }: { onLogout: () => void }) {
               <div className="space-y-6">
                 <Input label="Title" value={settings.about?.title} onChange={(v: string) => setSettings({...settings, about: {...settings.about, title: v}})} />
                 <Input label="Description" value={settings.about?.description} onChange={(v: string) => setSettings({...settings, about: {...settings.about, description: v}})} textarea />
+                <div className="space-y-2">
+                  <Input label="About Image URL" value={settings.about?.image_url} onChange={(v: string) => setSettings({...settings, about: {...settings.about, image_url: v}})} />
+                  <label className="text-[10px] font-black uppercase tracking-widest text-[#0EA5E9] cursor-pointer hover:underline ml-1">
+                    {uploading ? 'Uploading...' : 'Upload New About Image'}
+                    <input
+                      type="file"
+                      className="hidden"
+                      accept="image/*"
+                      onChange={async (e) => {
+                        if (e.target.files?.[0]) {
+                          const url = await handleFileUpload(e.target.files[0]);
+                          if (url) setSettings({...settings, about: {...settings.about, image_url: url}});
+                        }
+                      }}
+                    />
+                  </label>
+                </div>
               </div>
             </section>
 
