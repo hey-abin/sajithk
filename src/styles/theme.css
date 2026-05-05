@@ -163,6 +163,41 @@
     flex-direction: column;
     background: white;
     overflow: hidden;
+    position: relative;
+  }
+
+  .page-content::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image: url("https://www.transparenttextures.com/patterns/natural-paper.png");
+    opacity: 0.1;
+    pointer-events: none;
+    z-index: 5;
+  }
+
+  .page-left {
+    box-shadow: inset -10px 0 20px -10px rgba(0,0,0,0.1);
+  }
+
+  .page-right {
+    box-shadow: inset 10px 0 20px -10px rgba(0,0,0,0.1);
+  }
+
+  .book-spine {
+    position: absolute;
+    left: 50%;
+    top: 0;
+    bottom: 0;
+    width: 30px;
+    background: linear-gradient(to right, 
+      rgba(0,0,0,0.1) 0%,
+      rgba(0,0,0,0) 50%,
+      rgba(0,0,0,0.1) 100%
+    );
+    transform: translateX(-50%);
+    z-index: 100;
+    pointer-events: none;
   }
 
   /* Ensure book pages are properly styled */

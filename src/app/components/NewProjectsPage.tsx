@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Play, X, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
 import RealisticBook from './RealisticBook';
+import ProjectGallery from './ProjectGallery';
 import { supabase } from '../../lib/supabase';
 import img1 from '../../imports/IMG_4770.JPG';
 import img2 from '../../imports/IMG_4886.PNG';
@@ -88,9 +89,9 @@ export default function NewProjectsPage() {
           </p>
         </motion.div>
 
-        {/* Projects Book Section */}
+        {/* Projects Grid Section */}
         <section className="mb-32">
-          <RealisticBook />
+          <ProjectGallery />
         </section>
 
         {/* Video Gallery */}
@@ -111,7 +112,7 @@ export default function NewProjectsPage() {
           </p>
           </motion.div>
 
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-[2px] mt-10 px-0.5">
+          <div className="columns-2 sm:columns-3 lg:columns-4 xl:columns-5 gap-2 md:gap-4 space-y-2 md:space-y-4 mt-10 px-0.5">
             {videos.map((video, idx) => (
               <motion.div
                 key={video.id}
@@ -120,39 +121,26 @@ export default function NewProjectsPage() {
                 viewport={{ once: true }}
                 transition={{ delay: idx * 0.05 }}
                 onClick={() => setSelectedVideo(video.id)}
-                whileHover={{ 
-                  scale: 1.05, 
-                  rotateY: 5,
-                  rotateX: -5,
-                  translateZ: 30,
-                  boxShadow: '0 30px 60px rgba(0,0,0,0.2)'
-                }}
-                style={{ transformStyle: 'preserve-3d' }}
+                className="relative rounded-xl md:rounded-2xl overflow-hidden bg-black shadow-2xl transition-all duration-500 hover:scale-[1.02] break-inside-avoid mb-2 md:mb-4"
               >
-                {video.video_url ? (
-                  <video
-                    src={video.video_url}
-                    autoPlay
-                    muted
-                    loop
-                    playsInline
-                    className="w-full h-auto object-cover grayscale group-hover:grayscale-0 transition-all duration-700 brightness-75 group-hover:brightness-100"
-                  />
-                ) : (
-                  <img
-                    src={video.thumbnail}
-                    alt={video.title}
-                    className="w-full h-auto object-cover grayscale group-hover:grayscale-0 transition-all duration-700"
-                  />
-                )}
+                <video
+                  src={video.video_url}
+                  autoPlay
+                  muted
+                  loop
+                  playsInline
+                  className="w-full h-auto group-hover:scale-105 transition-all duration-1000 brightness-75 group-hover:brightness-100 block"
+                />
                 
-                {/* Title Overlay on Hover */}
-                <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center p-4 text-center">
-                  <div className="transform translate-y-4 group-hover:translate-y-0 transition-transform duration-300">
-                    <h3 className="text-white font-black text-sm uppercase tracking-tighter italic">{video.title}</h3>
-                    <div className="w-8 h-8 bg-[#0EA5E9] rounded-full flex items-center justify-center mx-auto mt-2">
-                      <Play size={12} className="text-white fill-white ml-0.5" />
-                    </div>
+                {/* Info Overlay */}
+                <div className="absolute inset-x-0 bottom-0 p-3 md:p-6 bg-gradient-to-t from-black/80 to-transparent">
+                  <span className="text-[#0EA5E9] font-black text-[8px] md:text-[10px] uppercase tracking-[0.3em] mb-0.5 md:mb-1 block">Video Work</span>
+                  <h3 className="text-white font-black text-xs md:text-xl uppercase tracking-tighter italic leading-tight">{video.title}</h3>
+                </div>
+
+                <div className="absolute top-3 right-3 md:top-6 md:right-6 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="w-8 h-8 md:w-10 md:h-10 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center">
+                    <Play size={12} className="text-white fill-white ml-0.5" />
                   </div>
                 </div>
               </motion.div>
@@ -187,21 +175,13 @@ export default function NewProjectsPage() {
               </button>
 
               {/* Video Container */}
-              <div className="aspect-video bg-black rounded-3xl overflow-hidden shadow-2xl border-8 border-[#0EA5E9] relative">
-                <div className="w-full h-full flex items-center justify-center text-white">
-                  <div className="text-center">
-                    <motion.div 
-                      animate={{ scale: [1, 1.1, 1] }}
-                      transition={{ duration: 2, repeat: Infinity }}
-                    >
-                      <Play className="w-24 h-24 mx-auto mb-6 text-[#0EA5E9]" />
-                    </motion.div>
-                    <p className="text-2xl md:text-4xl font-black italic tracking-tighter uppercase mb-2">Video Player</p>
-                    <p className="text-sm md:text-xl opacity-50 font-medium tracking-widest uppercase">
-                      {videos.find((v) => v.id === selectedVideo)?.title}
-                    </p>
-                  </div>
-                </div>
+              <div className="relative bg-black rounded-3xl overflow-hidden shadow-2xl border-8 border-[#0EA5E9] max-h-[85vh] w-auto mx-auto flex items-center justify-center">
+                <video
+                  src={videos.find((v) => v.id === selectedVideo)?.video_url}
+                  controls
+                  autoPlay
+                  className="max-w-full max-h-[80vh] w-auto h-auto"
+                />
               </div>
 
               {/* Navigation */}

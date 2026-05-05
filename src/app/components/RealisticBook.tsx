@@ -1,7 +1,7 @@
 import { useRef, useState, forwardRef, useEffect } from 'react';
 // @ts-ignore
 import HTMLFlipBook from 'react-pageflip';
-import { ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Loader2, Maximize2, Minimize2, Volume2, VolumeX } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import img1 from '../../imports/IMG_4770.JPG';
 import img2 from '../../imports/IMG_4886.PNG';
@@ -56,6 +56,13 @@ export default function RealisticBook() {
   const [currentPage, setCurrentPage] = useState(0);
   const [bookSize, setBookSize] = useState({ width: 450, height: 600 });
   const [isMobile, setIsMobile] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isMuted, setIsMuted] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  useEffect(() => {
+    audioRef.current = new Audio('https://www.soundjay.com/misc/sounds/page-flip-01a.mp3');
+  }, []);
 
   useEffect(() => {
     fetchProjects();
@@ -110,6 +117,22 @@ export default function RealisticBook() {
 
   const onFlip = (e: any) => {
     setCurrentPage(e.data);
+    if (!isMuted && audioRef.current) {
+      audioRef.current.currentTime = 0;
+      audioRef.current.play().catch(() => {});
+    }
+  };
+
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen();
+      setIsFullscreen(true);
+    } else {
+      if (document.exitFullscreen) {
+        document.exitFullscreen();
+        setIsFullscreen(false);
+      }
+    }
   };
 
   return (
@@ -140,7 +163,7 @@ export default function RealisticBook() {
             style={{}}
             startPage={0}
             drawShadow={true}
-            flippingTime={1000}
+            flippingTime={800}
             usePortrait={isMobile}
             startZIndex={0}
             autoSize={true}
@@ -150,8 +173,9 @@ export default function RealisticBook() {
           >
           {/* Cover Page */}
           <Page>
-            <div className="w-full h-full bg-gradient-to-br from-[#0EA5E9] to-[#0284C7] p-12 flex flex-col items-center justify-center text-white relative overflow-hidden">
-              <div className="absolute top-0 left-0 w-full h-full bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-10" />
+            <div className="w-full h-full bg-gradient-to-br from-[#0EA5E9] to-[#0284C7] p-12 flex flex-col items-center justify-center text-white relative overflow-hidden shadow-[inset_0_0_100px_rgba(0,0,0,0.3)]">
+              <div className="absolute top-0 left-0 w-full h-full bg-[url('https://www.transparenttextures.com/patterns/leather.png')] opacity-30" />
+              <div className="absolute top-0 bottom-0 right-0 w-4 bg-black/20 blur-sm z-20" /> {/* Spine shadow */}
               <div className="text-center relative z-10">
                 <h1 className="text-6xl font-black mb-4 tracking-tighter">
                   SAJITH K
@@ -173,31 +197,34 @@ export default function RealisticBook() {
           {/* Project Pages */}
           {projects.map((project) => (
             <Page key={project.id}>
-              <div className="w-full h-full p-8 flex flex-col">
+              <div className={`w-full h-full p-8 flex flex-col ${projects.indexOf(project) % 2 === 0 ? 'page-right' : 'page-left'}`}>
                 {/* Project Image */}
-                <div className="relative overflow-hidden rounded-2xl mb-6 flex-1 shadow-inner bg-gray-100">
-                  <div className="absolute inset-0 bg-gradient-to-br from-[#0EA5E9]/10 to-transparent z-10" />
+                <div className="relative overflow-hidden rounded-2xl mb-6 flex-1 shadow-2xl group/img bg-gray-100">
+                  <div className="absolute inset-0 bg-gradient-to-br from-[#0EA5E9]/20 to-transparent z-10 opacity-0 group-hover/img:opacity-100 transition-opacity" />
                   <img
                     src={project.image}
                     alt={project.title}
-                    className="w-full h-full object-cover grayscale hover:grayscale-0 transition-all duration-700"
+                    className="w-full h-full object-cover grayscale group-hover/img:grayscale-0 transition-all duration-1000 scale-110 group-hover/img:scale-100"
                   />
-                  <div className="absolute top-4 right-4 bg-[#0EA5E9] text-white px-4 py-2 rounded-full text-sm font-black z-20 shadow-lg">
+                  <div className="absolute top-4 right-4 bg-[#0EA5E9] text-white px-4 py-2 rounded-full text-sm font-black z-20 shadow-lg transform -rotate-3">
                     {project.category}
                   </div>
                 </div>
 
                 {/* Project Info */}
-                <div className="space-y-3">
+                <div className="space-y-4">
                   <div className="flex justify-between items-start">
-                    <h3 className="text-2xl font-black text-[#2D2D2D] tracking-tight">
-                      {project.title}
-                    </h3>
-                    <span className="text-xs text-[#0EA5E9] bg-[#0EA5E9]/10 px-3 py-1 rounded-full font-black uppercase tracking-wider">
+                    <div>
+                      <h3 className="text-3xl font-black text-[#2D2D2D] tracking-tighter uppercase leading-none mb-1">
+                        {project.title}
+                      </h3>
+                      <div className="h-1 w-12 bg-[#0EA5E9] rounded-full" />
+                    </div>
+                    <span className="text-xs text-white bg-[#2D2D2D] px-3 py-1 rounded-full font-black uppercase tracking-widest">
                       {project.year}
                     </span>
                   </div>
-                  <p className="text-[#2D2D2D]/70 leading-relaxed">
+                  <p className="text-[#2D2D2D]/60 leading-relaxed font-medium text-sm">
                     {project.description}
                   </p>
                 </div>
@@ -207,7 +234,9 @@ export default function RealisticBook() {
 
           {/* Back Cover */}
           <Page>
-            <div className="w-full h-full bg-[#2D2D2D] p-12 flex flex-col items-center justify-center">
+            <div className="w-full h-full bg-[#2D2D2D] p-12 flex flex-col items-center justify-center relative overflow-hidden shadow-[inset_0_0_100px_rgba(0,0,0,0.5)]">
+              <div className="absolute top-0 left-0 w-full h-full bg-[url('https://www.transparenttextures.com/patterns/leather.png')] opacity-30" />
+              <div className="absolute top-0 bottom-0 left-0 w-4 bg-black/40 blur-sm z-20" /> {/* Spine shadow */}
               <div className="text-center text-white">
                 <h2 className="text-4xl font-black mb-6 uppercase tracking-tighter">
                   Thank You
@@ -228,34 +257,55 @@ export default function RealisticBook() {
       </div>
     </div>
 
-      {/* Navigation Controls */}
-      <div className="flex items-center gap-6">
-        <button
-          onClick={prevPage}
-          disabled={currentPage === 0}
-          className="p-4 bg-[#0EA5E9] text-white rounded-full shadow-xl shadow-[#0EA5E9]/20 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-[#2D2D2D] transition-all hover:-translate-x-1"
-        >
-          <ChevronLeft size={28} />
-        </button>
+      <div className="flex flex-col items-center gap-8">
+        <div className="flex items-center gap-6">
+          <button
+            onClick={prevPage}
+            disabled={currentPage === 0}
+            className="p-4 bg-white text-[#2D2D2D] rounded-full shadow-xl hover:bg-[#0EA5E9] hover:text-white transition-all hover:-translate-x-1 disabled:opacity-20"
+          >
+            <ChevronLeft size={24} />
+          </button>
 
-        <div className="text-center min-w-[120px]">
-          <p className="text-sm font-black text-[#2D2D2D] uppercase tracking-widest">
-            {currentPage + 1} / {projects.length + 2}
-          </p>
+          <div className="flex flex-col items-center">
+            <span className="text-[10px] font-black uppercase tracking-[0.4em] text-[#2D2D2D]/30 mb-1">Page</span>
+            <div className="text-xl font-black text-[#2D2D2D]">
+              {currentPage + 1} <span className="text-[#0EA5E9]/30 mx-1">/</span> {projects.length + 2}
+            </div>
+          </div>
+
+          <button
+            onClick={nextPage}
+            disabled={currentPage >= projects.length + 1}
+            className="p-4 bg-white text-[#2D2D2D] rounded-full shadow-xl hover:bg-[#0EA5E9] hover:text-white transition-all hover:translate-x-1 disabled:opacity-20"
+          >
+            <ChevronRight size={24} />
+          </button>
         </div>
 
-        <button
-          onClick={nextPage}
-          disabled={currentPage >= projects.length + 1}
-          className="p-4 bg-[#0EA5E9] text-white rounded-full shadow-xl shadow-[#0EA5E9]/20 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-[#2D2D2D] transition-all hover:translate-x-1"
-        >
-          <ChevronRight size={28} />
-        </button>
-      </div>
+        {/* Toolbar */}
+        <div className="flex items-center gap-4 px-6 py-3 bg-white rounded-2xl shadow-lg border border-gray-100">
+          <button 
+            onClick={() => setIsMuted(!isMuted)}
+            className="p-2 text-[#2D2D2D]/40 hover:text-[#0EA5E9] transition-colors"
+            title={isMuted ? "Unmute" : "Mute"}
+          >
+            {isMuted ? <VolumeX size={18} /> : <Volume2 size={18} />}
+          </button>
+          <div className="w-px h-4 bg-gray-100" />
+          <button 
+            onClick={toggleFullscreen}
+            className="p-2 text-[#2D2D2D]/40 hover:text-[#0EA5E9] transition-colors"
+            title="Fullscreen"
+          >
+            {isFullscreen ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
+          </button>
+        </div>
 
-      <p className="text-xs font-black text-[#2D2D2D]/40 mt-8 uppercase tracking-[0.2em]">
-        Flip corners or use buttons
-      </p>
+        <p className="text-[10px] font-black text-[#2D2D2D]/20 uppercase tracking-[0.5em]">
+          Interactive Flipbook Experience
+        </p>
+      </div>
     </div>
   );
 }

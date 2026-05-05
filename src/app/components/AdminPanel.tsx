@@ -470,11 +470,11 @@ export default function AdminPanel({ onLogout }: { onLogout: () => void }) {
             ) : (
               videos.length > 0 ? (
                 videos.map((vid) => (
-                  <ItemCard 
+                   <ItemCard 
                     key={vid.id} 
                     title={vid.title} 
                     subtitle="Video Showcase" 
-                    image={vid.thumbnail_url}
+                    video={vid.video_url}
                     onEdit={() => startEditing(vid)}
                     onDelete={() => handleDelete('videos', vid.id!)}
                   />
@@ -562,31 +562,26 @@ export default function AdminPanel({ onLogout }: { onLogout: () => void }) {
                 ) : (
                   <>
                     <Input 
-                      label="Thumbnail URL" 
-                      value={formData.thumbnail_url} 
-                      onChange={(v) => setFormData({ ...formData, thumbnail_url: v })} 
+                      label="Video URL" 
+                      value={formData.video_url} 
+                      onChange={(v) => setFormData({ ...formData, video_url: v })} 
                     />
                     <div className="mt-2">
                       <label className="text-xs font-black uppercase tracking-widest text-[#0EA5E9] cursor-pointer hover:underline">
-                        {uploading ? 'Uploading...' : 'Upload Thumbnail to Storage'}
+                        {uploading ? 'Uploading...' : 'Upload Video to Storage'}
                         <input
                           type="file"
                           className="hidden"
-                          accept="image/*"
+                          accept="video/*"
                           onChange={async (e) => {
                             if (e.target.files?.[0]) {
                               const url = await handleFileUpload(e.target.files[0]);
-                              if (url) setFormData({ ...formData, thumbnail_url: url });
+                              if (url) setFormData({ ...formData, video_url: url });
                             }
                           }}
                         />
                       </label>
                     </div>
-                    <Input 
-                      label="Video URL (Placeholder)" 
-                      value={formData.video_url} 
-                      onChange={(v) => setFormData({ ...formData, video_url: v })} 
-                    />
                   </>
                 )}
 
@@ -616,12 +611,13 @@ export default function AdminPanel({ onLogout }: { onLogout: () => void }) {
 interface ItemCardProps {
   title: string;
   subtitle: string;
-  image: string;
+  image?: string;
+  video?: string;
   onEdit: () => void;
   onDelete: () => void;
 }
 
-function ItemCard({ title, subtitle, image, onEdit, onDelete }: ItemCardProps) {
+function ItemCard({ title, subtitle, image, video, onEdit, onDelete }: ItemCardProps) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -629,7 +625,18 @@ function ItemCard({ title, subtitle, image, onEdit, onDelete }: ItemCardProps) {
       className="bg-white rounded-3xl overflow-hidden shadow-xl shadow-black/5 group"
     >
       <div className="relative aspect-video overflow-hidden bg-gray-100">
-        <img src={image} alt={title} className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-500" />
+        {video ? (
+          <video 
+            src={video} 
+            autoPlay 
+            muted 
+            loop 
+            playsInline 
+            className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-500" 
+          />
+        ) : (
+          <img src={image} alt={title} className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-500" />
+        )}
         <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
           <button onClick={onEdit} className="p-3 bg-white text-[#2D2D2D] rounded-full hover:bg-[#0EA5E9] hover:text-white transition-all">
             <Edit2 size={18} />

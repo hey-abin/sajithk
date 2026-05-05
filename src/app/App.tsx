@@ -18,9 +18,36 @@ function ScrollToTop() {
   return null;
 }
 
+const setCookie = (name: string, value: string, days: number) => {
+  const date = new Date();
+  date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+  const expires = "; expires=" + date.toUTCString();
+  document.cookie = name + "=" + (value || "") + expires + "; path=/";
+};
+
+const getCookie = (name: string) => {
+  const nameEQ = name + "=";
+  const ca = document.cookie.split(';');
+  for (let i = 0; i < ca.length; i++) {
+    let c = ca[i];
+    while (c.charAt(0) === ' ') c = c.substring(1, c.length);
+    if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length);
+  }
+  return null;
+};
+
+const eraseCookie = (name: string) => {
+  document.cookie = name + '=; Max-Age=-99999999; path=/;';
+};
+
 function AppContent({ isAdmin, handleLogin, setIsAdmin }: { isAdmin: boolean, handleLogin: (p: string) => void, setIsAdmin: (b: boolean) => void }) {
   const location = useLocation();
   const isAdminPage = location.pathname.startsWith('/admin');
+
+  const handleLogout = () => {
+    eraseCookie('isAdmin');
+    setIsAdmin(false);
+  };
 
   return (
     <div className="min-h-screen bg-[#E8E8E8]">
@@ -33,7 +60,7 @@ function AppContent({ isAdmin, handleLogin, setIsAdmin }: { isAdmin: boolean, ha
           path="/admin" 
           element={
             isAdmin ? (
-              <AdminPanel onLogout={() => setIsAdmin(false)} />
+              <AdminPanel onLogout={handleLogout} />
             ) : (
               <AdminLogin onLogin={handleLogin} />
             )
@@ -46,10 +73,13 @@ function AppContent({ isAdmin, handleLogin, setIsAdmin }: { isAdmin: boolean, ha
 }
 
 export default function App() {
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(() => {
+    return getCookie('isAdmin') === 'true';
+  });
 
   const handleLogin = (password: string) => {
     if (password === 'sajithadmin') {
+      setCookie('isAdmin', 'true', 2);
       setIsAdmin(true);
     } else {
       alert('Invalid password');
