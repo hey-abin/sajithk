@@ -112,7 +112,20 @@ export default function AdminPanel({ onLogout }: { onLogout: () => void }) {
     const initialSetts = [
       { key: 'hero', value: { title: 'PORTO', subtitle: 'FOLIO', tagline: 'Creative Visual', image_url: 'https://pihhtsvshfllrxonagim.supabase.co/storage/v1/object/public/sajith/hero_profile.jpg' } },
       { key: 'about', value: { title: 'HELLO', description: 'Visual storyteller creating captivating content through videography, photography, and creative editing.', image_url: 'https://pihhtsvshfllrxonagim.supabase.co/storage/v1/object/public/sajith/hero_about.png' } },
-      { key: 'contact', value: { name: 'SAJITH K', email: 'sajithkizhyapattu@gmail.com', phone: '+91 9567633217', instagram: '@sajith.k', youtube: 'https://youtube.com' } }
+      { key: 'contact', value: { name: 'SAJITH K', email: 'sajithkizhyapattu@gmail.com', phone: '+91 9567633217', instagram: '@sajith.k', youtube: 'https://youtube.com' } },
+      { key: 'expertise', value: [
+        { label: 'Videography', icon: 'Camera' },
+        { label: 'Photography', icon: 'Video' },
+        { label: 'Video Editing', icon: 'Film' },
+        { label: 'Color Grading', icon: 'Palette' }
+      ]},
+      { key: 'tech_stack', value: [
+        { name: 'PS', color: '#31A8FF' },
+        { name: 'LR', color: '#31A8FF' },
+        { name: 'AE', color: '#CF96FD' },
+        { name: 'PR', color: '#E48BFF' },
+        { name: 'CC', color: '#FF3C3C' }
+      ]}
     ];
 
     for (const s of initialSetts) {
@@ -238,26 +251,37 @@ export default function AdminPanel({ onLogout }: { onLogout: () => void }) {
 
             <section className="bg-white p-6 md:p-8 rounded-[2rem] shadow-xl shadow-black/5">
               <h3 className="text-2xl font-black mb-6 uppercase tracking-tight">Hero Section</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <Input label="Main Title" value={settings.hero?.title} onChange={(v: string) => setSettings({...settings, hero: {...settings.hero, title: v}})} />
-                <Input label="Subtitle" value={settings.hero?.subtitle} onChange={(v: string) => setSettings({...settings, hero: {...settings.hero, subtitle: v}})} />
-                <Input label="Tagline" value={settings.hero?.tagline} onChange={(v: string) => setSettings({...settings, hero: {...settings.hero, tagline: v}})} />
-                <div className="space-y-2">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="space-y-6">
+                  <Input label="Main Title" value={settings.hero?.title} onChange={(v: string) => setSettings({...settings, hero: {...settings.hero, title: v}})} />
+                  <Input label="Subtitle" value={settings.hero?.subtitle} onChange={(v: string) => setSettings({...settings, hero: {...settings.hero, subtitle: v}})} />
+                  <Input label="Tagline" value={settings.hero?.tagline} onChange={(v: string) => setSettings({...settings, hero: {...settings.hero, tagline: v}})} />
+                </div>
+                <div className="space-y-4">
+                  <div className="aspect-video rounded-3xl overflow-hidden bg-gray-100 border-2 border-dashed border-gray-200 flex items-center justify-center relative group">
+                    {settings.hero?.image_url ? (
+                      <img src={settings.hero.image_url} alt="Hero Preview" className="w-full h-full object-cover" />
+                    ) : (
+                      <ImageIcon className="text-gray-300" size={48} />
+                    )}
+                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                      <label className="px-4 py-2 bg-white text-[#2D2D2D] rounded-full font-bold text-xs cursor-pointer hover:bg-[#0EA5E9] hover:text-white transition-all">
+                        {uploading ? 'Uploading...' : 'Change Image'}
+                        <input
+                          type="file"
+                          className="hidden"
+                          accept="image/*"
+                          onChange={async (e) => {
+                            if (e.target.files?.[0]) {
+                              const url = await handleFileUpload(e.target.files[0]);
+                              if (url) setSettings({...settings, hero: {...settings.hero, image_url: url}});
+                            }
+                          }}
+                        />
+                      </label>
+                    </div>
+                  </div>
                   <Input label="Hero Image URL" value={settings.hero?.image_url} onChange={(v: string) => setSettings({...settings, hero: {...settings.hero, image_url: v}})} />
-                  <label className="text-[10px] font-black uppercase tracking-widest text-[#0EA5E9] cursor-pointer hover:underline ml-1">
-                    {uploading ? 'Uploading...' : 'Upload New Hero Image'}
-                    <input
-                      type="file"
-                      className="hidden"
-                      accept="image/*"
-                      onChange={async (e) => {
-                        if (e.target.files?.[0]) {
-                          const url = await handleFileUpload(e.target.files[0]);
-                          if (url) setSettings({...settings, hero: {...settings.hero, image_url: url}});
-                        }
-                      }}
-                    />
-                  </label>
                 </div>
               </div>
             </section>
@@ -280,25 +304,36 @@ export default function AdminPanel({ onLogout }: { onLogout: () => void }) {
 
             <section className="bg-white p-8 rounded-[2rem] shadow-xl shadow-black/5">
               <h3 className="text-2xl font-black mb-6 uppercase tracking-tight">About Section</h3>
-              <div className="space-y-6">
-                <Input label="Title" value={settings.about?.title} onChange={(v: string) => setSettings({...settings, about: {...settings.about, title: v}})} />
-                <Input label="Description" value={settings.about?.description} onChange={(v: string) => setSettings({...settings, about: {...settings.about, description: v}})} textarea />
-                <div className="space-y-2">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="space-y-6">
+                  <Input label="Title" value={settings.about?.title} onChange={(v: string) => setSettings({...settings, about: {...settings.about, title: v}})} />
+                  <Input label="Description" value={settings.about?.description} onChange={(v: string) => setSettings({...settings, about: {...settings.about, description: v}})} textarea />
+                </div>
+                <div className="space-y-4">
+                  <div className="aspect-[4/5] rounded-3xl overflow-hidden bg-gray-100 border-2 border-dashed border-gray-200 flex items-center justify-center relative group">
+                    {settings.about?.image_url ? (
+                      <img src={settings.about.image_url} alt="About Preview" className="w-full h-full object-cover" />
+                    ) : (
+                      <ImageIcon className="text-gray-300" size={48} />
+                    )}
+                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                      <label className="px-4 py-2 bg-white text-[#2D2D2D] rounded-full font-bold text-xs cursor-pointer hover:bg-[#0EA5E9] hover:text-white transition-all">
+                        {uploading ? 'Uploading...' : 'Change Image'}
+                        <input
+                          type="file"
+                          className="hidden"
+                          accept="image/*"
+                          onChange={async (e) => {
+                            if (e.target.files?.[0]) {
+                              const url = await handleFileUpload(e.target.files[0]);
+                              if (url) setSettings({...settings, about: {...settings.about, image_url: url}});
+                            }
+                          }}
+                        />
+                      </label>
+                    </div>
+                  </div>
                   <Input label="About Image URL" value={settings.about?.image_url} onChange={(v: string) => setSettings({...settings, about: {...settings.about, image_url: v}})} />
-                  <label className="text-[10px] font-black uppercase tracking-widest text-[#0EA5E9] cursor-pointer hover:underline ml-1">
-                    {uploading ? 'Uploading...' : 'Upload New About Image'}
-                    <input
-                      type="file"
-                      className="hidden"
-                      accept="image/*"
-                      onChange={async (e) => {
-                        if (e.target.files?.[0]) {
-                          const url = await handleFileUpload(e.target.files[0]);
-                          if (url) setSettings({...settings, about: {...settings.about, image_url: url}});
-                        }
-                      }}
-                    />
-                  </label>
                 </div>
               </div>
             </section>
@@ -309,6 +344,100 @@ export default function AdminPanel({ onLogout }: { onLogout: () => void }) {
                 <Input label="Email" value={settings.contact?.email} onChange={(v: string) => setSettings({...settings, contact: {...settings.contact, email: v}})} />
                 <Input label="Phone" value={settings.contact?.phone} onChange={(v: string) => setSettings({...settings, contact: {...settings.contact, phone: v}})} />
                 <Input label="Instagram" value={settings.contact?.instagram} onChange={(v: string) => setSettings({...settings, contact: {...settings.contact, instagram: v}})} />
+              </div>
+            </section>
+
+            <section className="bg-white p-6 md:p-8 rounded-[2rem] shadow-xl shadow-black/5">
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-2xl font-black uppercase tracking-tight">Expertise</h3>
+                <button 
+                  onClick={() => {
+                    const current = settings.expertise || [];
+                    setSettings({...settings, expertise: [...current, { label: 'New Skill', icon: 'Camera' }]});
+                  }}
+                  className="p-2 bg-[#0EA5E9]/10 text-[#0EA5E9] rounded-lg hover:bg-[#0EA5E9] hover:text-white transition-all"
+                >
+                  <Plus size={20} />
+                </button>
+              </div>
+              <div className="space-y-4">
+                {(settings.expertise || []).map((exp: any, i: number) => (
+                  <div key={i} className="flex gap-4 items-end bg-gray-50 p-4 rounded-2xl relative group">
+                    <div className="flex-1">
+                      <Input label="Label" value={exp.label} onChange={(v) => {
+                        const newExp = [...settings.expertise];
+                        newExp[i].label = v;
+                        setSettings({...settings, expertise: newExp});
+                      }} />
+                    </div>
+                    <div className="w-32">
+                      <Input label="Icon Name" value={exp.icon} onChange={(v) => {
+                        const newExp = [...settings.expertise];
+                        newExp[i].icon = v;
+                        setSettings({...settings, expertise: newExp});
+                      }} />
+                    </div>
+                    <button 
+                      onClick={() => {
+                        const newExp = settings.expertise.filter((_: any, index: number) => index !== i);
+                        setSettings({...settings, expertise: newExp});
+                      }}
+                      className="p-3 text-red-500 hover:bg-red-50 rounded-xl transition-all"
+                    >
+                      <Trash2 size={20} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </section>
+
+            <section className="bg-white p-6 md:p-8 rounded-[2rem] shadow-xl shadow-black/5">
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-2xl font-black uppercase tracking-tight">Tech Stack</h3>
+                <button 
+                  onClick={() => {
+                    const current = settings.tech_stack || [];
+                    setSettings({...settings, tech_stack: [...current, { name: 'New', color: '#000000' }]});
+                  }}
+                  className="p-2 bg-[#0EA5E9]/10 text-[#0EA5E9] rounded-lg hover:bg-[#0EA5E9] hover:text-white transition-all"
+                >
+                  <Plus size={20} />
+                </button>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {(settings.tech_stack || []).map((tech: any, i: number) => (
+                  <div key={i} className="flex gap-4 items-end bg-gray-50 p-4 rounded-2xl relative group">
+                    <div className="flex-1">
+                      <Input label="Name" value={tech.name} onChange={(v) => {
+                        const newTech = [...settings.tech_stack];
+                        newTech[i].name = v;
+                        setSettings({...settings, tech_stack: newTech});
+                      }} />
+                    </div>
+                    <div className="w-24">
+                      <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-1">Color</label>
+                      <input 
+                        type="color" 
+                        value={tech.color} 
+                        onChange={(e) => {
+                          const newTech = [...settings.tech_stack];
+                          newTech[i].color = e.target.value;
+                          setSettings({...settings, tech_stack: newTech});
+                        }}
+                        className="w-full h-12 rounded-xl cursor-pointer bg-transparent border-none p-0"
+                      />
+                    </div>
+                    <button 
+                      onClick={() => {
+                        const newTech = settings.tech_stack.filter((_: any, index: number) => index !== i);
+                        setSettings({...settings, tech_stack: newTech});
+                      }}
+                      className="p-3 text-red-500 hover:bg-red-50 rounded-xl transition-all"
+                    >
+                      <Trash2 size={20} />
+                    </button>
+                  </div>
+                ))}
               </div>
             </section>
 

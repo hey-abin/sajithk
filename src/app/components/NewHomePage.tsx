@@ -1,8 +1,17 @@
 import { motion, useScroll, useTransform, useSpring, useMotionValue } from 'motion/react';
-import { Camera, Video, Palette, Film, Mail, Phone, Instagram, Youtube, ChevronRight } from 'lucide-react';
+import { Camera, Video, Palette, Film, Mail, Phone, Instagram, Youtube, ChevronRight, Sparkles, Monitor, Edit3 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { useEffect, useState, useRef } from 'react';
+
+const iconMap: any = {
+  Camera, Video, Palette, Film, Sparkles, Monitor, Edit3
+};
+
+function IconResolver({ name, size = 12, className = "" }: { name: string, size?: number, className?: string }) {
+  const Icon = iconMap[name] || Camera;
+  return <Icon size={size} className={className} />;
+}
 export default function NewHomePage() {
   const [settings, setSettings] = useState<any>({});
   const [loading, setLoading] = useState(true);
@@ -235,19 +244,19 @@ export default function NewHomePage() {
                 <div className="space-y-6">
                   <h4 className="font-black text-[10px] uppercase tracking-[0.4em] text-[#0EA5E9]">Expertise</h4>
                   <div className="grid grid-cols-1 gap-3">
-                    {[
-                      { label: 'Videography', icon: Camera },
-                      { label: 'Photography', icon: Video },
-                      { label: 'Video Editing', icon: Film },
-                      { label: 'Color Grading', icon: Palette }
-                    ].map((skill, i) => (
+                    {(settings.expertise || [
+                      { label: 'Videography', icon: 'Camera' },
+                      { label: 'Photography', icon: 'Video' },
+                      { label: 'Video Editing', icon: 'Film' },
+                      { label: 'Color Grading', icon: 'Palette' }
+                    ]).map((skill: any, i: number) => (
                       <motion.div 
-                        key={skill.label}
+                        key={i}
                         whileHover={{ x: 5 }}
                         className="flex items-center gap-3 group/skill cursor-default"
                       >
                         <div className="w-8 h-8 rounded-lg bg-[#2D2D2D]/5 flex items-center justify-center group-hover/skill:bg-[#0EA5E9] transition-colors">
-                          <skill.icon size={12} className="text-[#2D2D2D]/40 group-hover/skill:text-white transition-colors" />
+                          <IconResolver name={skill.icon} size={12} className="text-[#2D2D2D]/40 group-hover/skill:text-white transition-colors" />
                         </div>
                         <span className="text-xs font-bold text-[#2D2D2D]/60 group-hover/skill:text-[#2D2D2D] transition-colors">{skill.label}</span>
                       </motion.div>
@@ -258,15 +267,15 @@ export default function NewHomePage() {
                 <div className="space-y-6">
                   <h4 className="font-black text-[10px] uppercase tracking-[0.4em] text-[#0EA5E9]">Tech Stack</h4>
                   <div className="flex flex-wrap gap-2">
-                    {[
+                    {(settings.tech_stack || [
                       { name: 'PS', color: '#31A8FF' },
                       { name: 'LR', color: '#31A8FF' },
                       { name: 'AE', color: '#CF96FD' },
                       { name: 'PR', color: '#E48BFF' },
                       { name: 'CC', color: '#FF3C3C' },
-                    ].map((software) => (
+                    ]).map((software: any, i: number) => (
                       <motion.div
-                        key={software.name}
+                        key={i}
                         whileHover={{ scale: 1.1, y: -2 }}
                         className="w-10 h-10 rounded-xl bg-[#2D2D2D] flex items-center justify-center text-[10px] font-black shadow-lg cursor-pointer"
                         style={{ color: software.color }}
@@ -281,16 +290,34 @@ export default function NewHomePage() {
               {/* Contact Integration */}
               <div className="pt-10 border-t border-[#2D2D2D]/5 flex flex-wrap gap-x-12 gap-y-4">
                 {[
-                  { icon: Mail, value: settings.contact?.email || 'sajith@gmail.com', label: 'Email' },
-                  { icon: Instagram, value: settings.contact?.instagram || '@sajith.k', label: 'Social' },
+                  { 
+                    icon: Mail, 
+                    value: settings.contact?.email || 'sajith@gmail.com', 
+                    label: 'Email',
+                    href: `mailto:${settings.contact?.email || 'sajith@gmail.com'}`
+                  },
+                  { 
+                    icon: Instagram, 
+                    value: settings.contact?.instagram || '@sajith.k', 
+                    label: 'Social',
+                    href: settings.contact?.instagram?.startsWith('http') 
+                      ? settings.contact.instagram 
+                      : `https://instagram.com/${(settings.contact?.instagram || 'sajith.k').replace('@', '')}`
+                  },
                 ].map((item) => (
-                  <div key={item.label} className="flex items-center gap-3 group cursor-pointer">
+                  <a 
+                    key={item.label} 
+                    href={item.href}
+                    target={item.label === 'Social' ? "_blank" : undefined}
+                    rel={item.label === 'Social' ? "noopener noreferrer" : undefined}
+                    className="flex items-center gap-3 group cursor-pointer"
+                  >
                     <item.icon size={14} className="text-[#0EA5E9]" />
                     <div className="flex flex-col">
                       <span className="text-[8px] font-black uppercase tracking-widest text-[#2D2D2D]/30">{item.label}</span>
                       <span className="text-xs font-bold text-[#2D2D2D] group-hover:text-[#0EA5E9] transition-colors">{item.value}</span>
                     </div>
-                  </div>
+                  </a>
                 ))}
               </div>
             </div>
