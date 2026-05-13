@@ -1,15 +1,16 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Plus, Trash2, Edit2, LogOut, Image as ImageIcon, Video as VideoIcon, Save, X, ChevronRight, Menu } from 'lucide-react';
+import { Plus, Trash2, Edit2, LogOut, Image as ImageIcon, Video as VideoIcon, Save, X, ChevronRight, ChevronLeft, Menu, Folder } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 
 interface Project {
   id?: string;
   title: string;
-  category: string;
   description: string;
   image_url: string;
+  images?: string[];
   year: string;
+  parent_id?: string;
 }
 
 interface Video {
@@ -27,6 +28,8 @@ export default function AdminPanel({ onLogout }: { onLogout: () => void }) {
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [openedFolderId, setOpenedFolderId] = useState<string | null>(null);
+  const [uploadProgress, setUploadProgress] = useState({ current: 0, total: 0 });
   const [formData, setFormData] = useState<any>({});
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
@@ -86,15 +89,18 @@ export default function AdminPanel({ onLogout }: { onLogout: () => void }) {
 
   const handleSave = async (type: 'projects' | 'videos') => {
     const table = type as any;
-    if (editingId === 'new') {
-      const { error } = await supabase.from(table).insert([formData]);
-      if (!error) fetchData();
+    const { error } = editingId === 'new' 
+      ? await supabase.from(table).insert([formData])
+      : await supabase.from(table).update(formData).eq('id', editingId);
+
+    if (error) {
+      console.error('Save error:', error);
+      alert(`Error saving ${type}: ${error.message}\n\nMake sure you have added the 'parent_id' column to your database if you are creating sub-folders.`);
     } else {
-      const { error } = await supabase.from(table).update(formData).eq('id', editingId);
-      if (!error) fetchData();
+      fetchData();
+      setEditingId(null);
+      setFormData({});
     }
-    setEditingId(null);
-    setFormData({});
   };
 
   const handleSaveSettings = async () => {
@@ -151,7 +157,7 @@ export default function AdminPanel({ onLogout }: { onLogout: () => void }) {
   const startNew = () => {
     setEditingId('new');
     if (activeTab === 'projects') {
-      setFormData({ title: '', category: '', description: '', image_url: '', year: new Date().getFullYear().toString() });
+      setFormData({ title: '', description: '', image_url: '', images: [], year: new Date().getFullYear().toString() });
     } else {
       setFormData({ title: '', thumbnail_url: '', video_url: '' });
     }
@@ -188,6 +194,7 @@ export default function AdminPanel({ onLogout }: { onLogout: () => void }) {
               key={item.id}
               onClick={() => {
                 setActiveTab(item.id as any);
+                setOpenedFolderId(null);
                 setIsSidebarOpen(false);
               }}
               className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all ${
@@ -219,18 +226,139 @@ export default function AdminPanel({ onLogout }: { onLogout: () => void }) {
       <div className="md:ml-64 p-6 md:p-10 pt-20 md:pt-10">
         <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-10">
           <div>
-            <h2 className="text-3xl md:text-4xl font-black tracking-tighter uppercase">{activeTab === 'settings' ? 'Site Content' : activeTab}</h2>
-            <p className="text-gray-500 font-medium mt-1">Manage your {activeTab === 'settings' ? 'website text and info' : `${activeTab} content`}</p>
+            <div className="flex items-center flex-wrap gap-x-2 gap-y-1 mb-1">
+              <h2 
+                className={`text-xl md:text-2xl font-black tracking-tighter uppercase cursor-pointer hover:text-[#0EA5E9] transition-colors ${openedFolderId ? 'text-gray-400' : 'text-[#2D2D2D]'}`}
+                onClick={() => setOpenedFolderId(null)}
+              >
+                {activeTab === 'settings' ? 'Site Content' : activeTab}
+              </h2>
+              
+              {openedFolderId && (() => {
+                const path = [];
+                let currentId = openedFolderId;
+                while (currentId) {
+                  const p = projects.find(proj => proj.id === currentId);
+                  if (p) {
+                    path.unshift(p);
+                    currentId = (p as any).parent_id;
+                  } else break;
+                }
+                return path.map((p, i) => (
+                  <div key={p.id} className="flex items-center gap-2">
+                    <ChevronRight className="text-gray-300" size={16} />
+                    <h2 
+                      className={`text-xl md:text-2xl font-black tracking-tighter uppercase cursor-pointer transition-colors ${i === path.length - 1 ? 'text-[#0EA5E9]' : 'text-gray-400 hover:text-[#0EA5E9]'}`}
+                      onClick={() => setOpenedFolderId(p.id!)}
+                    >
+                      {p.title}
+                    </h2>
+                  </div>
+                ));
+              })()}
+            </div>
+            <p className="text-gray-500 font-medium text-xs md:text-sm">
+              {openedFolderId 
+                ? `Managing content inside this folder` 
+                : `Manage your ${activeTab === 'settings' ? 'website text and info' : `${activeTab} content`}`}
+            </p>
           </div>
-          {activeTab !== 'settings' && (
-            <button
-              onClick={startNew}
-              className="w-full md:w-auto flex items-center justify-center gap-2 px-6 py-3 bg-[#0EA5E9] text-white rounded-xl font-black uppercase tracking-widest shadow-xl shadow-[#0EA5E9]/20 hover:bg-[#2D2D2D] transition-all"
-            >
-              <Plus size={20} /> Add New
-            </button>
-          )}
+          <div className="flex gap-2 w-full md:w-auto">
+            {openedFolderId && (
+              <button
+                onClick={() => {
+                  const proj = projects.find(p => p.id === openedFolderId);
+                  if (proj) startEditing(proj);
+                }}
+                className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-white text-[#2D2D2D] rounded-lg font-black uppercase tracking-widest text-[9px] shadow-sm hover:bg-gray-50 transition-all border border-gray-100"
+              >
+                <Edit2 size={12} /> Details
+              </button>
+            )}
+            {activeTab !== 'settings' && (
+              <div className="flex gap-2 flex-1 md:flex-none">
+                {openedFolderId && (
+                  <button
+                    onClick={() => {
+                      setEditingId('new');
+                      setFormData({ 
+                        title: '', 
+                        description: '', 
+                        image_url: '', 
+                        images: [], 
+                        year: new Date().getFullYear().toString(),
+                        parent_id: openedFolderId 
+                      });
+                    }}
+                    className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-[#F3F3F5] text-[#2D2D2D] rounded-lg font-black uppercase tracking-widest text-[9px] border border-gray-200 hover:bg-white transition-all"
+                  >
+                    <Folder className="text-[#0EA5E9]" size={12} /> New Folder
+                  </button>
+                )}
+                <button
+                  onClick={openedFolderId ? () => {} : startNew}
+                  className="relative flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-[#0EA5E9] text-white rounded-lg font-black uppercase tracking-widest text-[9px] shadow-lg shadow-[#0EA5E9]/20 hover:bg-[#2D2D2D] transition-all overflow-hidden"
+                >
+                  {openedFolderId ? (
+                    <>
+                      <Plus size={12} /> Add Images
+                      <input
+                        type="file"
+                        className="absolute inset-0 opacity-0 cursor-pointer"
+                        accept="image/*"
+                        multiple
+                        onChange={async (e) => {
+                          if (e.target.files && openedFolderId) {
+                            const files = Array.from(e.target.files);
+                            setUploadProgress({ current: 0, total: files.length });
+                            setUploading(true);
+                            
+                            const proj = projects.find(p => p.id === openedFolderId);
+                            if (!proj) return;
+                            
+                            const newUrls = [];
+                            for (let i = 0; i < files.length; i++) {
+                              const url = await handleFileUpload(files[i]);
+                              if (url) {
+                                newUrls.push(url);
+                                setUploadProgress(prev => ({ ...prev, current: i + 1 }));
+                              }
+                            }
+                            const updatedImages = [...(proj.images || []), ...newUrls];
+                            const { error } = await supabase.from('projects').update({ 
+                              images: updatedImages,
+                              image_url: updatedImages[0] || proj.image_url
+                            }).eq('id', openedFolderId);
+                            
+                            if (!error) fetchData();
+                            setUploading(false);
+                            setUploadProgress({ current: 0, total: 0 });
+                          }
+                        }}
+                      />
+                    </>
+                  ) : (
+                    <><Plus size={12} /> Add New</>
+                  )}
+                </button>
+              </div>
+            )}
+          </div>
         </header>
+
+        {uploading && uploadProgress.total > 0 && (
+          <div className="fixed top-0 left-0 right-0 z-[100] h-1.5 bg-gray-100 overflow-hidden">
+            <motion.div 
+              initial={{ width: 0 }}
+              animate={{ width: `${(uploadProgress.current / uploadProgress.total) * 100}%` }}
+              className="h-full bg-[#0EA5E9] shadow-[0_0_10px_#0EA5E9]"
+            />
+            <div className="fixed top-4 left-1/2 -translate-x-1/2 bg-white/80 backdrop-blur-md px-6 py-2 rounded-full shadow-2xl border border-white/20 text-[10px] font-black uppercase tracking-[0.2em] flex items-center gap-3">
+              <div className="w-2 h-2 bg-[#0EA5E9] rounded-full animate-ping" />
+              Uploading {uploadProgress.current} / {uploadProgress.total} Images
+            </div>
+          </div>
+        )}
 
         {loading ? (
           <div className="flex items-center justify-center h-64">
@@ -449,25 +577,89 @@ export default function AdminPanel({ onLogout }: { onLogout: () => void }) {
             </button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className={`grid gap-3 md:gap-6 ${openedFolderId ? 'grid-cols-3 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8' : 'grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5'}`}>
             {activeTab === 'projects' ? (
-              projects.length > 0 ? (
-                projects.map((proj) => (
-                  <ItemCard 
-                    key={proj.id} 
-                    title={proj.title} 
-                    subtitle={proj.category} 
-                    image={proj.image_url}
-                    onEdit={() => startEditing(proj)}
-                    onDelete={() => handleDelete('projects', proj.id!)}
-                  />
-                ))
-              ) : (
-                <div className="col-span-full py-20 text-center bg-white rounded-[2rem] border-2 border-dashed border-gray-200">
-                  <p className="text-gray-400 font-bold uppercase tracking-widest text-sm">No projects found. Add your first project!</p>
-                </div>
-              )
+              /* PROJECTS TAB */
+              <>
+                {/* Sub-Folders (Only if in a folder or top-level) */}
+                {projects
+                  .filter(p => (openedFolderId ? (p as any).parent_id === openedFolderId : !(p as any).parent_id))
+                  .map((proj) => (
+                    <ItemCard 
+                      key={proj.id} 
+                      title={proj.title} 
+                      subtitle={proj.year} 
+                      image={proj.image_url}
+                      images={proj.images}
+                      onEdit={() => setOpenedFolderId(proj.id!)}
+                      onDelete={(e) => {
+                        e.stopPropagation();
+                        handleDelete('projects', proj.id!);
+                      }}
+                    />
+                  ))}
+
+                {/* Images inside the folder */}
+                {openedFolderId && 
+                  (projects.find(p => p.id === openedFolderId)?.images || []).map((img, i) => (
+                    <motion.div
+                      key={i}
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      className="relative aspect-square rounded-3xl overflow-hidden shadow-xl group border-4 border-transparent hover:border-[#0EA5E9] transition-all bg-white"
+                    >
+                      <img src={img} className="w-full h-full object-cover" />
+                      <div className="absolute inset-0 bg-black/40 md:bg-black/60 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                        <button 
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            const proj = projects.find(p => p.id === openedFolderId);
+                            if (proj) {
+                              const newImgs = proj.images?.filter((_, idx) => idx !== i) || [];
+                              await supabase.from('projects').update({ images: newImgs, image_url: newImgs[0] || '' }).eq('id', openedFolderId);
+                              fetchData();
+                            }
+                          }}
+                          className="p-3 bg-white text-red-600 rounded-xl hover:bg-red-600 hover:text-white transition-all shadow-lg"
+                        >
+                          <Trash2 size={20} />
+                        </button>
+                        {i > 0 && (
+                          <button 
+                            onClick={async (e) => {
+                              e.stopPropagation();
+                              const proj = projects.find(p => p.id === openedFolderId);
+                              if (proj && proj.images) {
+                                const newImgs = [...proj.images];
+                                [newImgs[i], newImgs[i-1]] = [newImgs[i-1], newImgs[i]];
+                                await supabase.from('projects').update({ images: newImgs, image_url: newImgs[0] }).eq('id', openedFolderId);
+                                fetchData();
+                              }
+                            }}
+                            className="p-3 bg-white text-[#0EA5E9] rounded-xl hover:bg-[#0EA5E9] hover:text-white transition-all shadow-lg"
+                          >
+                            <ChevronLeft size={20} />
+                          </button>
+                        )}
+                      </div>
+                      {i === 0 && (
+                        <div className="absolute top-2 left-2 bg-[#0EA5E9] text-[8px] text-white font-black px-2 py-0.5 rounded-full uppercase tracking-widest shadow-lg">Cover</div>
+                      )}
+                    </motion.div>
+                  ))
+                }
+
+                {/* Empty State */}
+                {projects.filter(p => (openedFolderId ? (p as any).parent_id === openedFolderId : !(p as any).parent_id)).length === 0 && 
+                 (!openedFolderId || (projects.find(p => p.id === openedFolderId)?.images?.length === 0)) && (
+                  <div className="col-span-full py-20 text-center bg-white rounded-[2rem] border-2 border-dashed border-gray-200">
+                    <p className="text-gray-400 font-bold uppercase tracking-widest text-sm">Nothing found here yet!</p>
+                  </div>
+                 )
+                }
+              </>
             ) : (
+              /* VIDEOS TAB */
               videos.length > 0 ? (
                 videos.map((vid) => (
                    <ItemCard 
@@ -476,7 +668,10 @@ export default function AdminPanel({ onLogout }: { onLogout: () => void }) {
                     subtitle="Video Showcase" 
                     video={vid.video_url}
                     onEdit={() => startEditing(vid)}
-                    onDelete={() => handleDelete('videos', vid.id!)}
+                    onDelete={(e) => {
+                      e.stopPropagation();
+                      handleDelete('videos', vid.id!);
+                    }}
                   />
                 ))
               ) : (
@@ -504,26 +699,20 @@ export default function AdminPanel({ onLogout }: { onLogout: () => void }) {
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
-              className="relative w-full max-w-2xl bg-white rounded-[2.5rem] p-10 shadow-2xl overflow-hidden"
+              className="relative w-full max-w-2xl bg-white rounded-[2.5rem] p-10 shadow-2xl overflow-y-auto max-h-[90vh]"
             >
               <h3 className="text-3xl font-black tracking-tighter uppercase mb-8">
                 {editingId === 'new' ? 'Add New' : 'Edit'} {activeTab === 'projects' ? 'Project' : 'Video'}
               </h3>
 
               <div className="space-y-6">
-                <Input 
-                  label="Title" 
-                  value={formData.title} 
-                  onChange={(v) => setFormData({ ...formData, title: v })} 
-                />
-                
                 {activeTab === 'projects' ? (
-                  <>
-                    <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-8 text-left">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <Input 
-                        label="Category" 
-                        value={formData.category} 
-                        onChange={(v) => setFormData({ ...formData, category: v })} 
+                        label="Title" 
+                        value={formData.title} 
+                        onChange={(v) => setFormData({ ...formData, title: v })} 
                       />
                       <Input 
                         label="Year" 
@@ -531,36 +720,21 @@ export default function AdminPanel({ onLogout }: { onLogout: () => void }) {
                         onChange={(v) => setFormData({ ...formData, year: v })} 
                       />
                     </div>
+                    
                     <Input 
                       label="Description" 
                       value={formData.description} 
                       onChange={(v) => setFormData({ ...formData, description: v })} 
                       textarea 
                     />
-                    <Input 
-                      label="Image URL" 
-                      value={formData.image_url} 
-                      onChange={(v) => setFormData({ ...formData, image_url: v })} 
-                    />
-                    <div className="mt-2">
-                      <label className="text-xs font-black uppercase tracking-widest text-[#0EA5E9] cursor-pointer hover:underline">
-                        {uploading ? 'Uploading...' : 'Upload Image to Storage'}
-                        <input
-                          type="file"
-                          className="hidden"
-                          accept="image/*"
-                          onChange={async (e) => {
-                            if (e.target.files?.[0]) {
-                              const url = await handleFileUpload(e.target.files[0]);
-                              if (url) setFormData({ ...formData, image_url: url });
-                            }
-                          }}
-                        />
-                      </label>
-                    </div>
-                  </>
+                  </div>
                 ) : (
                   <>
+                    <Input 
+                      label="Title" 
+                      value={formData.title} 
+                      onChange={(v) => setFormData({ ...formData, title: v })} 
+                    />
                     <Input 
                       label="Video URL" 
                       value={formData.video_url} 
@@ -613,16 +787,18 @@ interface ItemCardProps {
   subtitle: string;
   image?: string;
   video?: string;
+  images?: string[];
   onEdit: () => void;
-  onDelete: () => void;
+  onDelete: (e: React.MouseEvent) => void;
 }
 
-function ItemCard({ title, subtitle, image, video, onEdit, onDelete }: ItemCardProps) {
+function ItemCard({ title, subtitle, image, video, images, onEdit, onDelete }: ItemCardProps) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="bg-white rounded-3xl overflow-hidden shadow-xl shadow-black/5 group"
+      onClick={onEdit}
+      className="bg-white rounded-3xl overflow-hidden shadow-xl shadow-black/5 group cursor-pointer hover:shadow-2xl hover:shadow-[#0EA5E9]/5 transition-all"
     >
       <div className="relative aspect-video overflow-hidden bg-gray-100">
         {video ? (
@@ -634,21 +810,46 @@ function ItemCard({ title, subtitle, image, video, onEdit, onDelete }: ItemCardP
             playsInline 
             className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-500" 
           />
-        ) : (
+        ) : image ? (
           <img src={image} alt={title} className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-500" />
+        ) : (
+          <div className="w-full h-full bg-gray-50 flex flex-col items-center justify-center gap-3">
+            <Folder size={48} className="text-[#0EA5E9]/20" />
+            <span className="text-[10px] font-black text-gray-300 uppercase tracking-widest">Folder</span>
+          </div>
         )}
-        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
-          <button onClick={onEdit} className="p-3 bg-white text-[#2D2D2D] rounded-full hover:bg-[#0EA5E9] hover:text-white transition-all">
+        
+        {images && images.length > 1 && (
+           <div className="absolute top-4 left-4 z-10 px-3 py-1 bg-white/20 backdrop-blur-md rounded-full border border-white/20 flex items-center gap-2">
+             <div className="w-1.5 h-1.5 bg-[#0EA5E9] rounded-full animate-pulse" />
+             <span className="text-[10px] font-black text-white uppercase tracking-widest">{images.length} Items</span>
+           </div>
+        )}
+
+        <div className="absolute inset-0 bg-black/20 md:bg-black/40 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
+          <button 
+            onClick={(e) => {
+              e.stopPropagation();
+              onEdit();
+            }} 
+            className="p-3 bg-white text-[#2D2D2D] rounded-full hover:bg-[#0EA5E9] hover:text-white transition-all shadow-lg"
+          >
             <Edit2 size={18} />
           </button>
-          <button onClick={onDelete} className="p-3 bg-white text-red-600 rounded-full hover:bg-red-600 hover:text-white transition-all">
+          <button 
+            onClick={onDelete} 
+            className="p-3 bg-white text-red-600 rounded-full hover:bg-red-600 hover:text-white transition-all shadow-lg"
+          >
             <Trash2 size={18} />
           </button>
         </div>
       </div>
-      <div className="p-6">
-        <h4 className="font-black text-xl tracking-tight uppercase truncate">{title}</h4>
-        <p className="text-gray-500 font-medium text-sm mt-1 uppercase tracking-wider">{subtitle}</p>
+      <div className="p-3 md:p-6">
+        <div className="flex justify-between items-center mb-1">
+          <h4 className="font-black text-sm md:text-xl tracking-tight uppercase truncate">{title}</h4>
+          <ChevronRight size={14} className="text-gray-300 group-hover:text-[#0EA5E9] transition-colors" />
+        </div>
+        <p className="text-gray-400 font-medium text-[9px] md:text-sm uppercase tracking-wider">{subtitle}</p>
       </div>
     </motion.div>
   );

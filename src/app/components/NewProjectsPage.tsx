@@ -12,28 +12,41 @@ const initialVideos = [
   { id: 2, title: 'Client Project Showcase', thumbnail: img2 },
 ];
 
-function ScrollingBackground() {
+function CinematicBackground() {
   return (
-    <div className="fixed inset-0 pointer-events-none overflow-hidden z-0 opacity-20">
-      <motion.div 
-        animate={{ 
-          y: [0, -1000],
-        }}
-        transition={{ 
-          duration: 40, 
-          repeat: Infinity, 
-          ease: "linear" 
-        }}
-        className="flex flex-col gap-8 p-8"
-      >
-        {[...Array(10)].map((_, i) => (
-          <div key={i} className="grid grid-cols-2 gap-8">
-            <img src={img1} className="w-full aspect-video object-cover rounded-3xl blur-md" />
-            <img src={img2} className="w-full aspect-video object-cover rounded-3xl blur-md" />
-          </div>
-        ))}
-      </motion.div>
-    </div>
+    <>
+      {/* Cinematic Grain Overlay */}
+      <div className="fixed inset-0 pointer-events-none z-[100] opacity-[0.03] mix-blend-overlay">
+        <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+          <filter id="noiseFilter">
+            <feTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves="3" stitchTiles="stitch" />
+          </filter>
+          <rect width="100%" height="100%" filter="url(#noiseFilter)" />
+        </svg>
+      </div>
+
+      {/* Animated Background Orbs */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
+        <motion.div 
+          animate={{ 
+            x: [0, 50, 0],
+            y: [0, 30, 0],
+            scale: [1, 1.1, 1]
+          }}
+          transition={{ duration: 15, repeat: Infinity, ease: "easeInOut" }}
+          className="absolute top-[10%] left-[15%] w-[40vw] h-[40vw] bg-[#0EA5E9]/5 rounded-full blur-[120px]" 
+        />
+        <motion.div 
+          animate={{ 
+            x: [0, -40, 0],
+            y: [0, -20, 0],
+            scale: [1, 1.2, 1]
+          }}
+          transition={{ duration: 20, repeat: Infinity, ease: "easeInOut" }}
+          className="absolute bottom-[10%] right-[10%] w-[35vw] h-[35vw] bg-[#0EA5E9]/8 rounded-full blur-[100px]" 
+        />
+      </div>
+    </>
   );
 }
 
@@ -70,23 +83,29 @@ export default function NewProjectsPage() {
   };
 
   return (
-    <div className="relative min-h-screen bg-[#E8E8E8] pt-24 pb-32 px-4 overflow-hidden">
-      <ScrollingBackground />
+    <div className="relative min-h-screen bg-[#F3F3F5] pt-24 pb-32 px-4 overflow-hidden selection:bg-[#0EA5E9] selection:text-white">
+      <CinematicBackground />
       <div className="max-w-7xl mx-auto relative z-10">
         {/* Hero */}
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
-          className="text-center mb-20"
+          transition={{ duration: 0.8 }}
+          className="text-center mb-16 relative"
         >
-          <h1 className="text-4xl md:text-9xl font-black mb-4 tracking-tighter uppercase break-words">
-            <span className="text-[#2D2D2D]">{settings.projects?.title?.split(' ')[0] || 'MY'} </span>
-            <span className="text-[#0EA5E9]">{settings.projects?.title?.split(' ').slice(1).join(' ') || 'PROJECTS'}</span>
+          <div className="flex items-center justify-center gap-4 mb-8">
+            <div className="h-px w-8 bg-[#2D2D2D]/10" />
+            <span className="font-black text-[10px] tracking-[0.4em] uppercase text-[#2D2D2D]/30 italic">
+              {settings.projects?.subtitle || 'Flip through my creative portfolio'}
+            </span>
+            <div className="h-px w-8 bg-[#2D2D2D]/10" />
+          </div>
+
+          <h1 className="text-6xl md:text-8xl lg:text-9xl font-black mb-4 tracking-tighter uppercase leading-[0.85] py-2">
+            <span className="text-[#2D2D2D] block md:inline">{settings.projects?.title?.split(' ')[0] || 'MY'} </span>
+            <span className="text-[#0EA5E9] block md:inline">{settings.projects?.title?.split(' ').slice(1).join(' ') || 'PROJECTS'}</span>
             <span className="text-[#0EA5E9]">.</span>
           </h1>
-          <p className="text-xl text-[#2D2D2D]/70 font-medium uppercase tracking-[0.3em]">
-            {settings.projects?.subtitle || 'Flip through my creative portfolio'}
-          </p>
         </motion.div>
 
         {/* Projects Grid Section */}

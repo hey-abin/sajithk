@@ -3,8 +3,6 @@ import { useRef } from 'react';
 import { ChevronDown, Camera, Video, Sparkles } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import MagneticButton from './MagneticButton';
-import img1 from '../../imports/IMG_4770.JPG';
-import img2 from '../../imports/IMG_4886.PNG';
 
 export default function HomePage() {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -163,28 +161,8 @@ export default function HomePage() {
               transition={{ duration: 0.8 }}
               className="relative"
             >
-              <div className="grid grid-cols-2 gap-4">
-                <motion.div
-                  whileHover={{ scale: 1.05, rotateZ: 2 }}
-                  className="aspect-square rounded-2xl overflow-hidden shadow-2xl"
-                >
-                  <img
-                    src={img1}
-                    alt="Photography work"
-                    className="w-full h-full object-cover"
-                  />
-                </motion.div>
-                <motion.div
-                  whileHover={{ scale: 1.05, rotateZ: -2 }}
-                  className="aspect-square rounded-2xl overflow-hidden shadow-2xl mt-8"
-                >
-                  <img
-                    src={img2}
-                    alt="Video work"
-                    className="w-full h-full object-cover"
-                  />
-                </motion.div>
-              </div>
+             
+             
               <div className="absolute -z-10 inset-0 bg-sky-blue/10 blur-3xl" />
             </motion.div>
           </div>
